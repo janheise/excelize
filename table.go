@@ -490,3 +490,37 @@ func (f *File) parseFilterTokens(expression string, tokens []string) ([]int, str
 	}
 	return []int{operator}, token, nil
 }
+
+// ReplaceTable replaces the table with the given number for a sheet
+func (f *File) ReplaceTable(sheet string, table int, hcell string, vcell, format string) error {
+	formatSet, err := parseFormatTableSet(format)
+	if err != nil {
+		return err
+	}
+	// Coordinate conversion, convert C1:B3 to 2,0,1,2.
+	hcol, hrow, err := CellNameToCoordinates(hcell)
+	if err != nil {
+		return err
+	}
+	vcol, vrow, err := CellNameToCoordinates(vcell)
+	if err != nil {
+		return err
+	}
+
+	if vcol < hcol {
+		vcol, hcol = hcol, vcol
+	}
+
+	if vrow < hrow {
+		vrow, hrow = hrow, vrow
+	}
+
+	sheetRelationshipsTableXML := "../tables/table" + strconv.Itoa(table) + ".xml"
+	tableXML := strings.Replace(sheetRelationshipsTableXML, "..", "xl", -1)
+	err = f.addTable(sheet, tableXML, hcol, hrow, vcol, vrow, table, formatSet)
+	if err != nil {
+		return err
+	}
+	f.addContentTypePart(table, "table")
+	return err
+}
